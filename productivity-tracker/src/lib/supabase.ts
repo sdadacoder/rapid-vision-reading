@@ -17,10 +17,6 @@ export const signInWithGoogle = async () => {
     ? `${window.location.origin}/auth/callback`
     : `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/callback`;
 
-  // Debug log - remove after testing
-  console.log('OAuth redirect URL:', redirectUrl);
-  alert(`Redirecting to: ${redirectUrl}`);
-
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
