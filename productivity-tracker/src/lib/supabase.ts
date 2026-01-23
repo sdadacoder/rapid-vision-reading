@@ -12,10 +12,15 @@ export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 
 // OAuth helpers
 export const signInWithGoogle = async () => {
+  // Use window.location.origin for reliable redirect detection
+  const redirectUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}/auth/callback`
+    : `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/callback`;
+
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/callback`,
+      redirectTo: redirectUrl,
       queryParams: {
         access_type: 'offline',
         prompt: 'consent',
