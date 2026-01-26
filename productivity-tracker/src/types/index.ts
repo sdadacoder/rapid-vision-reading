@@ -1,49 +1,42 @@
-// Core types for the productivity tracker
+// Core types for the bitmap editor
 
-export interface ActivityOption {
+export interface CellData {
+  row: number;
+  col: number;
+  color: string;
+}
+
+export interface Design {
   id: string;
   user_id: string;
   name: string;
-  color: string;
+  rows: number;
+  cols: number;
+  cell_size: number;
+  cells: CellData[];
   created_at: string;
+  updated_at: string;
 }
 
-export interface ScheduledActivity {
-  id: string;
-  user_id: string;
-  option_id: string;
-  start_time: string; // ISO datetime
-  end_time: string; // ISO datetime
-  created_at: string;
+export interface EditorSettings {
+  showGrid: boolean;
+  showPins: boolean;
+  zoom: number;
+  selectedColor: string;
 }
 
-export interface ActivityLog {
-  id: string;
-  user_id: string;
-  option_id: string;
-  scheduled_id: string | null;
-  started_at: string;
-  ended_at: string | null;
-  duration_minutes: number | null;
-  created_at: string;
+export interface DesignState {
+  rows: number;
+  cols: number;
+  cellSize: number;
+  cells: Map<string, string>; // key: "row-col", value: color
 }
 
-export interface ActiveSession {
-  option_id: string;
-  scheduled_id: string | null;
-  started_at: Date;
-}
+// Helper to create cell key
+export const getCellKey = (row: number, col: number): string => `${row}-${col}`;
 
-// For FullCalendar events
-export interface CalendarEvent {
-  id: string;
-  title: string;
-  start: Date;
-  end: Date;
-  backgroundColor: string;
-  borderColor: string;
-  extendedProps: {
-    option_id: string;
-    scheduled_id: string;
-  };
-}
+// Helper to parse cell key
+export const parseCellKey = (key: string): { row: number; col: number } => {
+  const [row, col] = key.split('-').map(Number);
+  return { row, col };
+};

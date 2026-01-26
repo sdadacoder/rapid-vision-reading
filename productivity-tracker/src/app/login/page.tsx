@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { signInWithGoogle } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Clock, Sparkles, BarChart3, Calendar } from 'lucide-react';
+import { Grid3X3, Palette, Download, Save } from 'lucide-react';
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
@@ -45,29 +45,29 @@ export default function LoginPage() {
           {/* Logo and title */}
           <div className="text-center space-y-4">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 shadow-lg animate-pulse-glow">
-              <Clock className="w-8 h-8 text-white" />
+              <Grid3X3 className="w-8 h-8 text-white" />
             </div>
             <h1 className="text-3xl font-bold gradient-text">
-              Productivity Tracker
+              Bitmap Editor
             </h1>
             <p className="text-muted-foreground">
-              Track your time, boost your productivity
+              Create and customize your pixel designs
             </p>
           </div>
 
           {/* Features */}
           <div className="grid grid-cols-3 gap-4">
             <div className="glass rounded-xl p-3 text-center space-y-2">
-              <Calendar className="w-5 h-5 mx-auto text-purple-400" />
-              <p className="text-xs text-muted-foreground">Schedule</p>
+              <Palette className="w-5 h-5 mx-auto text-purple-400" />
+              <p className="text-xs text-muted-foreground">Color</p>
             </div>
             <div className="glass rounded-xl p-3 text-center space-y-2">
-              <Sparkles className="w-5 h-5 mx-auto text-pink-400" />
-              <p className="text-xs text-muted-foreground">Track</p>
+              <Save className="w-5 h-5 mx-auto text-pink-400" />
+              <p className="text-xs text-muted-foreground">Save</p>
             </div>
             <div className="glass rounded-xl p-3 text-center space-y-2">
-              <BarChart3 className="w-5 h-5 mx-auto text-blue-400" />
-              <p className="text-xs text-muted-foreground">Analyze</p>
+              <Download className="w-5 h-5 mx-auto text-blue-400" />
+              <p className="text-xs text-muted-foreground">Export</p>
             </div>
           </div>
 

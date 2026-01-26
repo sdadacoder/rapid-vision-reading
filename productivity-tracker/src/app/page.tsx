@@ -1,87 +1,48 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useRef, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import dynamic from 'next/dynamic';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import ActivityDialog from '@/components/ActivityDialog';
-import OptionsManager from '@/components/OptionsManager';
-import ActiveTracker from '@/components/ActiveTracker';
-import StatsChart from '@/components/StatsChart';
+import BitmapCanvas from '@/components/BitmapCanvas';
+import EditorControls from '@/components/EditorControls';
+import DesignsList from '@/components/DesignsList';
 import { UserMenu } from '@/components/UserMenu';
-import { useProductivity } from '@/hooks/useProductivity';
+import { useBitmapEditor } from '@/hooks/useBitmapEditor';
 import { useAuth } from '@/contexts/AuthContext';
-import { Clock, Calendar as CalendarIcon, BarChart3 } from 'lucide-react';
-
-// Dynamic import for FullCalendar to avoid SSR issues
-const Calendar = dynamic(() => import('@/components/Calendar'), {
-  ssr: false,
-  loading: () => (
-    <div className="h-[600px] flex items-center justify-center glass-card rounded-2xl">
-      <div className="text-center space-y-3">
-        <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto" />
-        <p className="text-muted-foreground">Loading calendar...</p>
-      </div>
-    </div>
-  ),
-});
-
-function LiveClock() {
-  const [time, setTime] = useState(new Date());
-
-  useEffect(() => {
-    const timer = setInterval(() => setTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  return (
-    <div className="text-center">
-      <div className="text-4xl font-bold font-mono gradient-text">
-        {time.toLocaleTimeString('en-US', {
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-          hour12: true,
-        })}
-      </div>
-      <div className="text-sm text-muted-foreground mt-1">
-        {time.toLocaleDateString('en-US', {
-          weekday: 'long',
-          month: 'long',
-          day: 'numeric',
-          year: 'numeric',
-        })}
-      </div>
-    </div>
-  );
-}
+import { Grid3X3 } from 'lucide-react';
 
 export default function Home() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const {
-    options,
-    logs,
-    activeSession,
+    rows,
+    cols,
+    cellSize,
+    cells,
+    showGrid,
+    showPins,
+    zoom,
+    selectedColor,
+    designs,
+    currentDesignId,
+    currentDesignName,
     loading,
-    calendarEvents,
-    getCurrentScheduled,
-    addOption,
-    deleteOption,
-    scheduleActivity,
-    deleteScheduled,
-    startActivity,
-    switchActivity,
-    stopActivity,
-  } = useProductivity();
-
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [selectedRange, setSelectedRange] = useState<{
-    start: Date;
-    end: Date;
-  } | null>(null);
-  const [currentScheduled, setCurrentScheduled] = useState(getCurrentScheduled());
+    saving,
+    setRows,
+    setCols,
+    setShowGrid,
+    setShowPins,
+    setZoom,
+    setSelectedColor,
+    setCurrentDesignName,
+    setCellColor,
+    clearAllCells,
+    saveDesign,
+    loadDesign,
+    deleteDesign,
+    newDesign,
+  } = useBitmapEditor();
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -89,41 +50,39 @@ export default function Home() {
     }
   }, [user, authLoading, router]);
 
-  // Update current scheduled activity every minute
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentScheduled(getCurrentScheduled());
-    }, 60000);
+  // Handle cell click - paint with selected color
+  const handleCellClick = useCallback((row: number, col: number) => {
+    setCellColor(row, col, selectedColor);
+  }, [setCellColor, selectedColor]);
 
-    setCurrentScheduled(getCurrentScheduled());
+  // Export canvas as JPG
+  const handleExport = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
-    return () => clearInterval(interval);
-  }, [getCurrentScheduled]);
+    // Create a temporary canvas with grid visible for export
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = canvas.width;
+    tempCanvas.height = canvas.height;
+    const ctx = tempCanvas.getContext('2d');
+    if (!ctx) return;
 
-  const handleSelectTimeRange = (start: Date, end: Date) => {
-    setSelectedRange({ start, end });
-    setDialogOpen(true);
-  };
+    // Copy the current canvas
+    ctx.drawImage(canvas, 0, 0);
 
-  const handleConfirmActivity = async (optionId: string) => {
-    if (selectedRange) {
-      await scheduleActivity(optionId, selectedRange.start, selectedRange.end);
-      setSelectedRange(null);
-    }
-  };
-
-  const handleEventClick = async (scheduledId: string) => {
-    if (confirm('Delete this scheduled activity?')) {
-      await deleteScheduled(scheduledId);
-    }
-  };
+    // Convert to JPG and download
+    const link = document.createElement('a');
+    link.download = `${currentDesignName.replace(/[^a-z0-9]/gi, '_')}.jpg`;
+    link.href = tempCanvas.toDataURL('image/jpeg', 0.95);
+    link.click();
+  }, [currentDesignName]);
 
   if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center space-y-4">
           <div className="w-12 h-12 border-3 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-muted-foreground">Loading your productivity data...</p>
+          <p className="text-muted-foreground">Loading...</p>
         </div>
       </div>
     );
@@ -141,86 +100,71 @@ export default function Home() {
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg animate-pulse-glow">
-                <Clock className="w-6 h-6 text-white" />
+                <Grid3X3 className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold gradient-text">Productivity Tracker</h1>
-                <p className="text-sm text-muted-foreground">Track your time, achieve your goals</p>
+                <h1 className="text-2xl font-bold gradient-text">Bitmap Editor</h1>
+                <p className="text-sm text-muted-foreground">Create and customize your pixel designs</p>
               </div>
             </div>
-            <div className="flex items-center gap-4">
-              <LiveClock />
-              <div className="h-10 w-px bg-white/10" />
-              <OptionsManager
-                options={options}
-                onAddOption={addOption}
-                onDeleteOption={deleteOption}
-              />
-              <UserMenu />
-            </div>
+            <UserMenu />
           </div>
         </header>
 
         {/* Main content */}
-        <Tabs defaultValue="schedule" className="space-y-6">
-          <TabsList className="glass-card p-1 rounded-xl">
-            <TabsTrigger
-              value="schedule"
-              className="rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500/80 data-[state=active]:to-pink-500/80 data-[state=active]:text-white transition-all flex items-center gap-2 px-4"
-            >
-              <CalendarIcon className="w-4 h-4" />
-              Schedule
-            </TabsTrigger>
-            <TabsTrigger
-              value="stats"
-              className="rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500/80 data-[state=active]:to-pink-500/80 data-[state=active]:text-white transition-all flex items-center gap-2 px-4"
-            >
-              <BarChart3 className="w-4 h-4" />
-              Statistics
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="schedule" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2">
-                <div className="glass-card rounded-2xl p-4 h-[620px]">
-                  <Calendar
-                    events={calendarEvents}
-                    options={options}
-                    onSelectTimeRange={handleSelectTimeRange}
-                    onEventClick={handleEventClick}
-                  />
-                </div>
-              </div>
-              <div>
-                <ActiveTracker
-                  options={options}
-                  currentScheduled={currentScheduled}
-                  activeSession={activeSession}
-                  onStart={startActivity}
-                  onSwitch={switchActivity}
-                  onStop={stopActivity}
-                />
-              </div>
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Canvas Area */}
+          <div className="lg:col-span-3">
+            <div className="glass-card rounded-2xl p-4">
+              <BitmapCanvas
+                rows={rows}
+                cols={cols}
+                cellSize={cellSize}
+                zoom={zoom}
+                showGrid={showGrid}
+                showPins={showPins}
+                cells={cells}
+                selectedColor={selectedColor}
+                onCellClick={handleCellClick}
+                canvasRef={canvasRef}
+              />
             </div>
-          </TabsContent>
+          </div>
 
-          <TabsContent value="stats">
-            <div className="glass-card rounded-2xl p-6">
-              <StatsChart options={options} logs={logs} />
-            </div>
-          </TabsContent>
-        </Tabs>
+          {/* Controls Sidebar */}
+          <div className="space-y-4">
+            <EditorControls
+              rows={rows}
+              cols={cols}
+              onRowsChange={setRows}
+              onColsChange={setCols}
+              showGrid={showGrid}
+              showPins={showPins}
+              onShowGridChange={setShowGrid}
+              onShowPinsChange={setShowPins}
+              zoom={zoom}
+              onZoomChange={setZoom}
+              selectedColor={selectedColor}
+              onColorChange={setSelectedColor}
+              onClearAll={clearAllCells}
+              onExport={handleExport}
+              onSave={saveDesign}
+              onNew={newDesign}
+              saving={saving}
+              currentDesignName={currentDesignName}
+              onDesignNameChange={setCurrentDesignName}
+            />
+
+            <DesignsList
+              designs={designs}
+              currentDesignId={currentDesignId}
+              loading={loading}
+              onLoadDesign={loadDesign}
+              onDeleteDesign={deleteDesign}
+            />
+          </div>
+        </div>
       </div>
-
-      <ActivityDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        options={options}
-        startTime={selectedRange?.start || null}
-        endTime={selectedRange?.end || null}
-        onConfirm={handleConfirmActivity}
-      />
     </main>
   );
 }
