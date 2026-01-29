@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useCallback, useEffect } from 'react';
+import { useRef, useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import BitmapCanvas from '@/components/BitmapCanvas';
 import EditorControls from '@/components/EditorControls';
@@ -37,6 +37,7 @@ export default function Home() {
     setSelectedColor,
     setCurrentDesignName,
     setCellColor,
+    clearCell,
     clearAllCells,
     saveDesign,
     loadDesign,
@@ -44,16 +45,22 @@ export default function Home() {
     newDesign,
   } = useBitmapEditor();
 
+  const [isErasing, setIsErasing] = useState(false);
+
   useEffect(() => {
     if (!authLoading && !user) {
       router.push('/login');
     }
   }, [user, authLoading, router]);
 
-  // Handle cell click - paint with selected color
+  // Handle cell click - paint with selected color or erase
   const handleCellClick = useCallback((row: number, col: number) => {
-    setCellColor(row, col, selectedColor);
-  }, [setCellColor, selectedColor]);
+    if (isErasing) {
+      clearCell(row, col);
+    } else {
+      setCellColor(row, col, selectedColor);
+    }
+  }, [setCellColor, clearCell, selectedColor, isErasing]);
 
   // Export canvas as JPG
   const handleExport = useCallback(() => {
@@ -146,6 +153,8 @@ export default function Home() {
               onZoomChange={setZoom}
               selectedColor={selectedColor}
               onColorChange={setSelectedColor}
+              isErasing={isErasing}
+              onErasingChange={setIsErasing}
               onClearAll={clearAllCells}
               onExport={handleExport}
               onSave={saveDesign}

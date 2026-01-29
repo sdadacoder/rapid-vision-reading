@@ -14,6 +14,7 @@ import {
   Plus,
   Palette,
   RotateCcw,
+  Eraser,
 } from 'lucide-react';
 
 interface EditorControlsProps {
@@ -36,6 +37,10 @@ interface EditorControlsProps {
   // Color
   selectedColor: string;
   onColorChange: (color: string) => void;
+
+  // Eraser
+  isErasing: boolean;
+  onErasingChange: (erasing: boolean) => void;
 
   // Actions
   onClearAll: () => void;
@@ -77,6 +82,8 @@ export default function EditorControls({
   onZoomChange,
   selectedColor,
   onColorChange,
+  isErasing,
+  onErasingChange,
   onClearAll,
   onExport,
   onSave,
@@ -146,12 +153,15 @@ export default function EditorControls({
             <button
               key={color}
               className={`w-8 h-8 rounded-lg border-2 transition-all ${
-                selectedColor === color
+                !isErasing && selectedColor === color
                   ? 'border-white scale-110 shadow-lg'
                   : 'border-white/20 hover:border-white/50'
               }`}
               style={{ backgroundColor: color }}
-              onClick={() => onColorChange(color)}
+              onClick={() => {
+                onColorChange(color);
+                onErasingChange(false);
+              }}
             />
           ))}
         </div>
@@ -160,13 +170,28 @@ export default function EditorControls({
           <input
             type="color"
             value={selectedColor}
-            onChange={(e) => onColorChange(e.target.value)}
+            onChange={(e) => {
+              onColorChange(e.target.value);
+              onErasingChange(false);
+            }}
             className="w-10 h-8 rounded cursor-pointer"
           />
           <span className="text-xs font-mono text-muted-foreground">
             {selectedColor}
           </span>
         </div>
+        {/* Eraser */}
+        <button
+          onClick={() => onErasingChange(!isErasing)}
+          className={`w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg transition-all mt-2 ${
+            isErasing
+              ? 'bg-orange-500/20 text-orange-300 border border-orange-500/50'
+              : 'bg-white/5 text-muted-foreground border border-white/10 hover:bg-white/10'
+          }`}
+        >
+          <Eraser className="w-4 h-4" />
+          <span className="text-sm">Eraser {isErasing && '(Active)'}</span>
+        </button>
       </div>
 
       {/* Zoom Controls */}
