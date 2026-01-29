@@ -177,15 +177,14 @@ export default function BitmapCanvas({
   return (
     <div
       ref={containerRef}
-      className="overflow-auto bg-gray-900 rounded-lg p-4 flex items-center justify-center"
+      className="overflow-auto bg-gray-900 rounded-lg p-4"
       style={{ maxHeight: '70vh' }}
     >
       <canvas
         ref={canvasRef}
         style={{
           cursor: 'crosshair',
-          maxWidth: '100%',
-          height: 'auto'
+          display: 'block'
         }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
