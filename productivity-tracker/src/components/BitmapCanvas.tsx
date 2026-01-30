@@ -35,10 +35,14 @@ export default function BitmapCanvas({
   const pinRadius = effectiveSize * 0.08;
   const pinOffset = effectiveSize * 0.15;
 
+  // Helper to get column count for a row (staggered rows have one fewer cell)
+  const getColsForRow = useCallback((row: number) => {
+    return row % 2 === 1 ? cols - 1 : cols;
+  }, [cols]);
+
   // Calculate canvas dimensions
-  // Staggered rows means odd rows are offset by half a cell
-  // Width needs extra half cell for the staggered rows
-  const canvasWidth = (cols + 0.5) * effectiveSize;
+  // Width is just cols * cellSize (staggered rows fit within this width)
+  const canvasWidth = cols * effectiveSize;
   const canvasHeight = rows * effectiveSize;
 
   // Get cell at canvas coordinates
@@ -46,9 +50,10 @@ export default function BitmapCanvas({
     const row = Math.floor(canvasY / effectiveSize);
     const isStaggered = row % 2 === 1;
     const offsetX = isStaggered ? effectiveSize * 0.5 : 0;
+    const colsInRow = getColsForRow(row);
     const col = Math.floor((canvasX - offsetX) / effectiveSize);
 
-    if (row >= 0 && row < rows && col >= 0 && col < cols) {
+    if (row >= 0 && row < rows && col >= 0 && col < colsInRow) {
       // Check if click is within the actual cell bounds
       const cellX = col * effectiveSize + offsetX;
       const cellY = row * effectiveSize;
@@ -59,7 +64,7 @@ export default function BitmapCanvas({
       }
     }
     return null;
-  }, [effectiveSize, rows, cols]);
+  }, [effectiveSize, rows, getColsForRow]);
 
   // Draw the canvas
   const draw = useCallback((ctx: CanvasRenderingContext2D) => {
@@ -76,8 +81,9 @@ export default function BitmapCanvas({
     for (let row = 0; row < rows; row++) {
       const isStaggered = row % 2 === 1;
       const offsetX = isStaggered ? effectiveSize * 0.5 : 0;
+      const colsInRow = getColsForRow(row);
 
-      for (let col = 0; col < cols; col++) {
+      for (let col = 0; col < colsInRow; col++) {
         const x = col * effectiveSize + offsetX;
         const y = row * effectiveSize;
         const cellKey = getCellKey(row, col);
@@ -114,7 +120,7 @@ export default function BitmapCanvas({
         }
       }
     }
-  }, [rows, cols, effectiveSize, canvasWidth, canvasHeight, cells, showGrid, showPins, pinRadius, pinOffset]);
+  }, [rows, cols, effectiveSize, canvasWidth, canvasHeight, cells, showGrid, showPins, pinRadius, pinOffset, getColsForRow]);
 
   // Render canvas
   useEffect(() => {
